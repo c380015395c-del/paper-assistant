@@ -597,7 +597,7 @@
                     <option value="zhipu">智谱 GLM-4</option>
                     <option value="yiwan">零一万物 Yi</option>
                     <option value="doubao">豆包（需接入点）</option>
-                    <option value="openai">OpenAI（需翻墙）</option>
+                    <option value="openai">OpenAI（需科学上网）</option>
                 </select>
                 <input type="password" id="api-key-input" placeholder="请输入API密钥（豆包格式：密钥|||接入点ID）">
                 <button id="save-api-key">保存密钥</button>
@@ -627,7 +627,7 @@
                 <!-- DeepSeek -->
                 <div class="help-section" style="margin: 20px 0; padding: 20px; background: linear-gradient(to right, #e8f5e9, #fff); border-radius: 8px; border-left: 4px solid #4CAF50;">
                     <h3 style="color: #2e7d32;">🌟 1. DeepSeek（强烈推荐）</h3>
-                    <p style="color: #666; font-size: 13px; margin: 10px 0;">国产大模型，性价比极高，无需翻墙，注册送额度</p>
+                    <p style="color: #666; font-size: 13px; margin: 10px 0;">国产大模型，性价比极高，国内直连，注册送额度</p>
                     
                     <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 15px 0;">
                         <p style="font-weight: bold; color: #333; margin-bottom: 10px;">📍 获取步骤：</p>
@@ -771,7 +771,7 @@
 
                 <!-- OpenAI -->
                 <div class="help-section" style="margin: 20px 0; padding: 20px; background: linear-gradient(to right, #efebe9, #fff); border-radius: 8px; border-left: 4px solid #795548;">
-                    <h3 style="color: #5d4037;">🌐 7. OpenAI（需翻墙）</h3>
+                    <h3 style="color: #5d4037;">🌐 7. OpenAI（需科学上网）</h3>
                     <p style="color: #666; font-size: 13px; margin: 10px 0;">ChatGPT 背后的公司，需要科学上网、海外手机号和支付方式</p>
                     
                     <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 15px 0;">
@@ -1244,16 +1244,14 @@
                 // 中文润色请求
                 let polishedChinese = content;
                 if (!sectionStates['chinese']) {
-                    const titleContext = title ? `论文题目：${title}\n\n` : '';
-                    const chinesePolishPrompt = `你是一位学术论文润色专家。请将以下中文文本润色为符合学术论文规范的语言。
+                    const fieldHint = title ? `（该文本属于"${title}"相关领域）` : '';
+                    const chinesePolishPrompt = `润色以下中文文本，使其更符合学术论文规范${fieldHint}。
 
-要求：
-1. 严格保持原文的核心意思和结构，不要添加原文没有的内容
-2. 提升语言的学术性、逻辑性和专业性
-3. 只输出润色后的文本，不要添加任何解释、标题或额外说明
-4. 如果原文很短，就输出简短的润色结果，不要扩写
+严格要求：
+- 仅润色用词和表达，禁止添加任何原文没有的内容
+- 禁止解释、禁止扩写、禁止添加定义
+- 直接输出润色结果，不要有任何前缀或说明
 
-${titleContext}原文：
 ${content}`;
                     polishedChinese = await callAI(config, key, chinesePolishPrompt);
                     document.getElementById('chinese-polished').value = polishedChinese;
@@ -1264,16 +1262,9 @@ ${content}`;
                 // 原文直接翻译成英文
                 let translatedEnglish = '';
                 if (!sectionStates['original-eng']) {
-                    const titleContext = title ? `论文题目：${title}\n\n` : '';
-                    const translatePrompt = `你是一位专业的学术论文翻译专家。请将以下中文文本翻译成符合SCI期刊标准的英文。
+                    const fieldHint = title ? `（领域：${title}）` : '';
+                    const translatePrompt = `将以下中文翻译成学术英文${fieldHint}，直接输出英文，禁止添加任何说明：
 
-要求：
-1. 使用学术英语的规范表达和句式结构
-2. 确保专业术语翻译准确
-3. 只输出翻译后的英文文本，不要添加任何解释或中文
-4. 保持与原文相同的篇幅，不要扩写
-
-${titleContext}中文原文：
 ${content}`;
                     translatedEnglish = await callAI(config, key, translatePrompt);
                     document.getElementById('english-translated').value = translatedEnglish;
@@ -1284,17 +1275,9 @@ ${content}`;
                 // 润色后的中文再翻译成英文
                 let polishedEnglish = '';
                 if (!sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                    const titleContext = title ? `论文题目：${title}\n\n` : '';
-                    const polishedTranslatePrompt = `你是一位专业的学术论文翻译专家。请将以下中文学术文本翻译成符合SCI期刊标准的英文。
+                    const fieldHint = title ? `（领域：${title}）` : '';
+                    const polishedTranslatePrompt = `将以下中文翻译成学术英文${fieldHint}，直接输出英文，禁止添加任何说明：
 
-要求：
-1. 使用学术英语的规范表达和句式结构
-2. 确保语法正确，表达严谨
-3. 专业术语翻译准确
-4. 只输出翻译后的英文文本，不要添加任何解释或中文
-5. 保持与原文相同的篇幅，不要扩写
-
-${titleContext}中文原文：
 ${polishedChinese}`;
                     polishedEnglish = await callAI(config, key, polishedTranslatePrompt);
                     document.getElementById('polished-english').value = polishedEnglish;
@@ -1307,24 +1290,12 @@ ${polishedChinese}`;
                     let reversePrompt;
                     
                     if (selectedReverseSource === 'original-eng' && !sectionStates['original-eng']) {
-                        reversePrompt = `你是一位专业的学术论文翻译专家。请将以下英文学术文本翻译回中文。
+                        reversePrompt = `将以下英文翻译成中文，直接输出中文，禁止添加任何说明：
 
-要求：
-1. 保持学术严谨性和原意
-2. 只输出翻译后的中文文本，不要添加任何解释或英文
-3. 保持与原文相同的篇幅
-
-英文原文：
 ${translatedEnglish}`;
                     } else if (selectedReverseSource === 'polished-eng' && !sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                        reversePrompt = `你是一位专业的学术论文翻译专家。请将以下英文学术文本翻译回中文。
+                        reversePrompt = `将以下英文翻译成中文，直接输出中文，禁止添加任何说明：
 
-要求：
-1. 保持学术严谨性和原意
-2. 只输出翻译后的中文文本，不要添加任何解释或英文
-3. 保持与原文相同的篇幅
-
-英文原文：
 ${polishedEnglish}`;
                     } else {
                         document.getElementById('reverse-translation').value = '';
