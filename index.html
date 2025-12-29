@@ -774,7 +774,26 @@
         const SUPABASE_URL = 'https://kwlefsgpatdiuguicvus.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3bGVmc2dwYXRkaXVndWljdnVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMDc3NTcsImV4cCI6MjA4MjU4Mzc1N30.Py30SZKqLTAzPGnk_-pdNFxQCUR0ZhHvWVSbCuE0_FU';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // 等待 Supabase SDK 加载完成
+        let supabaseClient = null;
+        
+        function initSupabase() {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                return true;
+            }
+            return false;
+        }
+        
+        // 尝试初始化，如果失败则延迟重试
+        if (!initSupabase()) {
+            const checkInterval = setInterval(() => {
+                if (initSupabase()) {
+                    clearInterval(checkInterval);
+                    checkLoginStatus();
+                }
+            }, 100);
+        }
 
         // 当前用户
         let currentUser = null;
@@ -818,17 +837,19 @@
             }
         };
 
-        // 页面加载时检查登录状态
-        window.addEventListener('load', async function() {
+        // 检查登录状态
+        async function checkLoginStatus() {
+            if (!supabaseClient) return;
+            
             // 检查用户登录状态
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 currentUser = session.user;
                 updateUIForLoggedInUser();
             }
 
             // 监听登录状态变化
-            supabase.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (session) {
                     currentUser = session.user;
                     updateUIForLoggedInUser();
@@ -837,6 +858,13 @@
                     updateUIForLoggedOutUser();
                 }
             });
+        }
+
+        // 页面加载时检查登录状态
+        window.addEventListener('load', async function() {
+            if (supabaseClient) {
+                checkLoginStatus();
+            }
 
             // 恢复已保存的API密钥
             if (apiKeys[currentModel]) {
@@ -908,7 +936,7 @@
             const messageEl = document.getElementById('login-message');
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -944,7 +972,7 @@
             }
 
             try {
-                const { data, error } = await supabase.auth.signUp({
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password
                 });
@@ -964,7 +992,7 @@
 
         // 退出登录
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             updateUIForLoggedOutUser();
         }
