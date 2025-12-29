@@ -786,13 +786,30 @@
         }
         
         // 尝试初始化，如果失败则延迟重试
-        if (!initSupabase()) {
-            const checkInterval = setInterval(() => {
-                if (initSupabase()) {
-                    clearInterval(checkInterval);
-                    checkLoginStatus();
-                }
-            }, 100);
+        let initAttempts = 0;
+        const maxAttempts = 50; // 最多尝试5秒
+        
+        function tryInit() {
+            if (initSupabase()) {
+                console.log('Supabase 初始化成功');
+                checkLoginStatus();
+                return true;
+            }
+            initAttempts++;
+            if (initAttempts < maxAttempts) {
+                setTimeout(tryInit, 100);
+            } else {
+                console.error('Supabase SDK 加载失败，请检查网络连接');
+                alert('系统加载失败，请刷新页面重试。如果问题持续，请检查网络连接。');
+            }
+            return false;
+        }
+        
+        // 页面加载后开始初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryInit);
+        } else {
+            tryInit();
         }
 
         // 当前用户
@@ -935,6 +952,12 @@
             const password = document.getElementById('login-password').value;
             const messageEl = document.getElementById('login-message');
 
+            if (!supabaseClient) {
+                messageEl.className = 'auth-message error';
+                messageEl.textContent = '系统正在加载，请稍后再试';
+                return;
+            }
+
             try {
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
@@ -964,6 +987,12 @@
             const password = document.getElementById('register-password').value;
             const passwordConfirm = document.getElementById('register-password-confirm').value;
             const messageEl = document.getElementById('register-message');
+
+            if (!supabaseClient) {
+                messageEl.className = 'auth-message error';
+                messageEl.textContent = '系统正在加载，请稍后再试';
+                return;
+            }
 
             if (password !== passwordConfirm) {
                 messageEl.className = 'auth-message error';
