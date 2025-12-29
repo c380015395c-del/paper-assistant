@@ -685,8 +685,8 @@
                     <h3>原文输入区</h3>
                     <textarea id="original-text" class="editor-textarea synchronized-scroll" placeholder="请输入论文原文..."></textarea>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button class="copy-btn" onclick="triggerAIProcessing()">确认翻译</button>
-                        <button class="copy-btn" onclick="copyContent('original-text')">复制内容</button>
+                        <button class="copy-btn" style="padding: 14px 28px; font-size: 16px;" onclick="triggerAIProcessing()">确认翻译</button>
+                        <button class="copy-btn" style="padding: 14px 28px; font-size: 16px;" onclick="copyContent('original-text')">复制内容</button>
                     </div>
                     <div id="loading-1" class="loading" style="display: none;">AI正在处理...</div>
                 </div>
@@ -700,6 +700,7 @@
                     <textarea id="english-translated" class="editor-textarea read-only-textarea synchronized-scroll" readonly placeholder="AI翻译的英文内容（符合SCI期刊标准）将显示在这里..."></textarea>
                     <button class="copy-btn" onclick="copyContent('english-translated')">复制内容</button>
                     <button class="toggle-btn" id="toggle-original-eng" onclick="toggleSection('original-eng')">屏蔽</button>
+                    <span style="font-size: 12px; color: #888; margin-left: 10px;">屏蔽不需要的功能可节省Token</span>
                 </div>
             </div>
 
@@ -710,10 +711,11 @@
                     <textarea id="chinese-polished" class="editor-textarea read-only-textarea synchronized-scroll" readonly placeholder="AI润色后的中文内容将显示在这里..."></textarea>
                     <button class="copy-btn" onclick="copyContent('chinese-polished')">复制内容</button>
                     <button class="toggle-btn" id="toggle-chinese" onclick="toggleSection('chinese')">屏蔽</button>
+                    <span style="font-size: 12px; color: #888; margin-left: 10px;">屏蔽不需要的功能可节省Token</span>
                 </div>
 
                 <div class="editor-section">
-                    <h3>润色后英文翻译区 (SCI标准)</h3>
+                    <h3>润色后英文翻译区 (SCI期刊标准)</h3>
                     <div style="display: flex; align-items: center; margin-bottom: 10px;">
                         <input type="radio" id="reverse-polished-eng" name="reverse-source" value="polished-eng" onclick="selectReverseSource('polished-eng')" checked>
                         <label for="reverse-polished-eng" style="margin-left: 5px;">选择此翻译进行逆向验证</label>
@@ -721,6 +723,7 @@
                     <textarea id="polished-english" class="editor-textarea read-only-textarea synchronized-scroll" readonly placeholder="润色后中文内容的英文翻译（符合SCI期刊标准）将显示在这里..."></textarea>
                     <button class="copy-btn" onclick="copyContent('polished-english')">复制内容</button>
                     <button class="toggle-btn" id="toggle-polished-eng" onclick="toggleSection('polished-eng')">屏蔽</button>
+                    <span style="font-size: 12px; color: #888; margin-left: 10px;">屏蔽不需要的功能可节省Token</span>
                 </div>
 
                 <div class="editor-section">
@@ -728,6 +731,7 @@
                     <textarea id="reverse-translation" class="editor-textarea read-only-textarea synchronized-scroll" readonly placeholder="用于内容一致性校验的中文回译将显示在这里..."></textarea>
                     <button class="copy-btn" onclick="copyContent('reverse-translation')">复制内容</button>
                     <button class="toggle-btn" id="toggle-reverse" onclick="toggleSection('reverse')">屏蔽</button>
+                    <span style="font-size: 12px; color: #888; margin-left: 10px;">屏蔽不需要的功能可节省Token</span>
                 </div>
             </div>
         </div>
@@ -1102,7 +1106,17 @@
                 // 中文润色请求
                 let polishedChinese = content;
                 if (!sectionStates['chinese']) {
-                    const chinesePolishPrompt = `请将以下中文文本润色为学术论文规范语言，保持原意不变，提升逻辑清晰度和专业性：\n\n${content}`;
+                    const titleContext = title ? `论文题目：${title}\n\n` : '';
+                    const chinesePolishPrompt = `你是一位学术论文润色专家。请将以下中文文本润色为符合学术论文规范的语言。
+
+要求：
+1. 严格保持原文的核心意思和结构，不要添加原文没有的内容
+2. 提升语言的学术性、逻辑性和专业性
+3. 只输出润色后的文本，不要添加任何解释、标题或额外说明
+4. 如果原文很短，就输出简短的润色结果，不要扩写
+
+${titleContext}原文：
+${content}`;
                     polishedChinese = await callAI(config, key, chinesePolishPrompt);
                     document.getElementById('chinese-polished').value = polishedChinese;
                 } else {
@@ -1112,7 +1126,17 @@
                 // 原文直接翻译成英文
                 let translatedEnglish = '';
                 if (!sectionStates['original-eng']) {
-                    const translatePrompt = `请将以下中文文本翻译成符合SCI期刊标准的英文，使用学术严谨性表达，确保专业术语准确：\n\n${content}`;
+                    const titleContext = title ? `论文题目：${title}\n\n` : '';
+                    const translatePrompt = `你是一位专业的学术论文翻译专家。请将以下中文文本翻译成符合SCI期刊标准的英文。
+
+要求：
+1. 使用学术英语的规范表达和句式结构
+2. 确保专业术语翻译准确
+3. 只输出翻译后的英文文本，不要添加任何解释或中文
+4. 保持与原文相同的篇幅，不要扩写
+
+${titleContext}中文原文：
+${content}`;
                     translatedEnglish = await callAI(config, key, translatePrompt);
                     document.getElementById('english-translated').value = translatedEnglish;
                 } else {
@@ -1122,7 +1146,18 @@
                 // 润色后的中文再翻译成英文
                 let polishedEnglish = '';
                 if (!sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                    const polishedTranslatePrompt = `请将以下中文学术文本翻译成符合SCI期刊标准的英文，确保语法结构正确，学术表达严谨，专业术语准确：\n\n${polishedChinese}`;
+                    const titleContext = title ? `论文题目：${title}\n\n` : '';
+                    const polishedTranslatePrompt = `你是一位专业的学术论文翻译专家。请将以下中文学术文本翻译成符合SCI期刊标准的英文。
+
+要求：
+1. 使用学术英语的规范表达和句式结构
+2. 确保语法正确，表达严谨
+3. 专业术语翻译准确
+4. 只输出翻译后的英文文本，不要添加任何解释或中文
+5. 保持与原文相同的篇幅，不要扩写
+
+${titleContext}中文原文：
+${polishedChinese}`;
                     polishedEnglish = await callAI(config, key, polishedTranslatePrompt);
                     document.getElementById('polished-english').value = polishedEnglish;
                 } else {
@@ -1134,9 +1169,25 @@
                     let reversePrompt;
                     
                     if (selectedReverseSource === 'original-eng' && !sectionStates['original-eng']) {
-                        reversePrompt = `请将以下英文学术文本翻译回中文，保持学术严谨性和原意不变：\n\n${translatedEnglish}`;
+                        reversePrompt = `你是一位专业的学术论文翻译专家。请将以下英文学术文本翻译回中文。
+
+要求：
+1. 保持学术严谨性和原意
+2. 只输出翻译后的中文文本，不要添加任何解释或英文
+3. 保持与原文相同的篇幅
+
+英文原文：
+${translatedEnglish}`;
                     } else if (selectedReverseSource === 'polished-eng' && !sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                        reversePrompt = `请将以下英文学术文本翻译回中文，保持学术严谨性和原意不变：\n\n${polishedEnglish}`;
+                        reversePrompt = `你是一位专业的学术论文翻译专家。请将以下英文学术文本翻译回中文。
+
+要求：
+1. 保持学术严谨性和原意
+2. 只输出翻译后的中文文本，不要添加任何解释或英文
+3. 保持与原文相同的篇幅
+
+英文原文：
+${polishedEnglish}`;
                     } else {
                         document.getElementById('reverse-translation').value = '';
                         document.getElementById('loading-1').style.display = 'none';
