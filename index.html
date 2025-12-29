@@ -1244,15 +1244,17 @@
                 // 中文润色请求
                 let polishedChinese = content;
                 if (!sectionStates['chinese']) {
-                    const fieldHint = title ? `（该文本属于"${title}"相关领域）` : '';
-                    const chinesePolishPrompt = `润色以下中文文本，使其更符合学术论文规范${fieldHint}。
+                    const fieldHint = title ? `[领域:${title}]` : '';
+                    const chinesePolishPrompt = `${fieldHint}
+【任务】润色下面的中文，使表达更学术规范
+【铁律】
+1. 输出字数必须与输入基本相同，绝对禁止扩写
+2. 如果输入只有几个字，输出也只能是几个字
+3. 禁止添加解释、定义、背景说明
+4. 只输出润色结果，无需任何前缀
 
-严格要求：
-- 仅润色用词和表达，禁止添加任何原文没有的内容
-- 禁止解释、禁止扩写、禁止添加定义
-- 直接输出润色结果，不要有任何前缀或说明
-
-${content}`;
+【输入】${content}
+【输出】`;
                     polishedChinese = await callAI(config, key, chinesePolishPrompt);
                     document.getElementById('chinese-polished').value = polishedChinese;
                 } else {
@@ -1262,10 +1264,16 @@ ${content}`;
                 // 原文直接翻译成英文
                 let translatedEnglish = '';
                 if (!sectionStates['original-eng']) {
-                    const fieldHint = title ? `（领域：${title}）` : '';
-                    const translatePrompt = `将以下中文翻译成学术英文${fieldHint}，直接输出英文，禁止添加任何说明：
+                    const fieldHint = title ? `[领域:${title}]` : '';
+                    const translatePrompt = `${fieldHint}
+【任务】将下面的中文翻译成学术英文
+【铁律】
+1. 只翻译，不解释，不扩写
+2. 输入几个字就输出对应的几个英文单词
+3. 只输出翻译结果，无需任何前缀
 
-${content}`;
+【中文】${content}
+【英文】`;
                     translatedEnglish = await callAI(config, key, translatePrompt);
                     document.getElementById('english-translated').value = translatedEnglish;
                 } else {
@@ -1275,10 +1283,16 @@ ${content}`;
                 // 润色后的中文再翻译成英文
                 let polishedEnglish = '';
                 if (!sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                    const fieldHint = title ? `（领域：${title}）` : '';
-                    const polishedTranslatePrompt = `将以下中文翻译成学术英文${fieldHint}，直接输出英文，禁止添加任何说明：
+                    const fieldHint = title ? `[领域:${title}]` : '';
+                    const polishedTranslatePrompt = `${fieldHint}
+【任务】将下面的中文翻译成学术英文
+【铁律】
+1. 只翻译，不解释，不扩写
+2. 输入几个字就输出对应的几个英文单词
+3. 只输出翻译结果，无需任何前缀
 
-${polishedChinese}`;
+【中文】${polishedChinese}
+【英文】`;
                     polishedEnglish = await callAI(config, key, polishedTranslatePrompt);
                     document.getElementById('polished-english').value = polishedEnglish;
                 } else {
@@ -1290,13 +1304,17 @@ ${polishedChinese}`;
                     let reversePrompt;
                     
                     if (selectedReverseSource === 'original-eng' && !sectionStates['original-eng']) {
-                        reversePrompt = `将以下英文翻译成中文，直接输出中文，禁止添加任何说明：
+                        reversePrompt = `【任务】将下面的英文翻译成中文
+【铁律】只翻译，不解释，不扩写，只输出翻译结果
 
-${translatedEnglish}`;
+【英文】${translatedEnglish}
+【中文】`;
                     } else if (selectedReverseSource === 'polished-eng' && !sectionStates['polished-eng'] && !sectionStates['chinese']) {
-                        reversePrompt = `将以下英文翻译成中文，直接输出中文，禁止添加任何说明：
+                        reversePrompt = `【任务】将下面的英文翻译成中文
+【铁律】只翻译，不解释，不扩写，只输出翻译结果
 
-${polishedEnglish}`;
+【英文】${polishedEnglish}
+【中文】`;
                     } else {
                         document.getElementById('reverse-translation').value = '';
                         document.getElementById('loading-1').style.display = 'none';
