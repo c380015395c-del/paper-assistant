@@ -50,11 +50,12 @@
             justify-content: flex-end;
             align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
-            padding: 10px 20px;
-            background-color: var(--bg-color);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px var(--shadow-color);
+            margin-bottom: 15px;
+        }
+        
+        #guest-buttons {
+            display: flex;
+            gap: 15px;
         }
 
         .user-bar span {
@@ -545,9 +546,9 @@
                 <button onclick="showAuthModal('login')">登录</button>
                 <button onclick="showAuthModal('register')">注册</button>
             </div>
-            <div id="user-info" style="display: none;">
+            <div id="user-info" style="display: none; gap: 20px;">
                 <span>欢迎，<span id="user-email-display"></span></span>
-                <button class="logout-btn" onclick="logout()">退出登录</button>
+                <button class="logout-btn" onclick="logout()" style="margin-left: 15px;">退出登录</button>
             </div>
         </div>
 
@@ -607,10 +608,13 @@
 
         <!-- API帮助模态框 -->
         <div id="api-help-modal" class="modal">
-            <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto;">
-                <span class="close" onclick="closeApiHelpModal()" style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
-                <h2 style="margin-bottom: 10px;">🔑 如何获取各个AI平台的API密钥</h2>
-                <p style="color: #666; margin-bottom: 20px;">选择任意一个平台注册即可使用，推荐使用 <strong style="color: #2196F3;">DeepSeek</strong>（国内直连、价格便宜）</p>
+            <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto; position: relative;">
+                <!-- 固定的顶部栏 -->
+                <div style="position: sticky; top: 0; background: white; padding: 15px 0; border-bottom: 1px solid #eee; margin-bottom: 15px; z-index: 10;">
+                    <span class="close" onclick="closeApiHelpModal()" style="position: absolute; right: 0; top: 10px; font-size: 32px; font-weight: bold; cursor: pointer; color: #999; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f5f5f5;">&times;</span>
+                    <h2 style="margin: 0; padding-right: 50px;">🔑 如何获取各个AI平台的API密钥</h2>
+                    <p style="color: #666; margin: 10px 0 0 0; padding-right: 50px;">选择任意一个平台注册即可使用，推荐使用 <strong style="color: #2196F3;">DeepSeek</strong>（国内直连、价格便宜）</p>
+                </div>
                 
                 <!-- 快速导航 -->
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; border-radius: 10px; margin-bottom: 20px;">
@@ -1108,7 +1112,14 @@
 
                 if (error) {
                     messageEl.className = 'auth-message error';
-                    messageEl.textContent = '登录失败：' + error.message;
+                    // 检测是否是邮箱未验证的错误
+                    if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
+                        messageEl.textContent = '登录失败：邮箱尚未验证，请前往邮箱查收验证邮件并点击验证链接后再登录';
+                    } else if (error.message.includes('Invalid login credentials')) {
+                        messageEl.textContent = '登录失败：邮箱或密码错误，如果刚注册请先验证邮箱';
+                    } else {
+                        messageEl.textContent = '登录失败：' + error.message;
+                    }
                 } else {
                     messageEl.className = 'auth-message success';
                     messageEl.textContent = '登录成功！';
@@ -1329,7 +1340,22 @@
                 
             } catch (error) {
                 console.error('API调用错误:', error);
-                alert('AI处理失败，请检查API密钥是否正确或网络连接是否正常。\n错误信息：' + error.message);
+                // 翻译常见英文错误信息为中文
+                let errorMsg = error.message;
+                if (errorMsg.includes('Invalid Authentication') || errorMsg.includes('invalid_api_key') || errorMsg.includes('Unauthorized')) {
+                    errorMsg = 'API密钥无效，请检查密钥是否正确';
+                } else if (errorMsg.includes('exceeded your current quota') || errorMsg.includes('insufficient_quota')) {
+                    errorMsg = 'API额度已用完，请充值后再试';
+                } else if (errorMsg.includes('Rate limit') || errorMsg.includes('rate_limit')) {
+                    errorMsg = '请求太频繁，请稍后再试';
+                } else if (errorMsg.includes('network') || errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+                    errorMsg = '网络连接失败，请检查网络';
+                } else if (errorMsg.includes('timeout')) {
+                    errorMsg = '请求超时，请稍后再试';
+                } else if (errorMsg.includes('model') && errorMsg.includes('not found')) {
+                    errorMsg = '模型不存在，请检查配置';
+                }
+                alert('AI处理失败：' + errorMsg);
             } finally {
                 document.getElementById('loading-1').style.display = 'none';
             }
